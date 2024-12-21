@@ -1,14 +1,17 @@
 {
   "manifest_version": 3,
-  "name": "Cantina Judge Assistant",
-  "version": "1.1",
+  "name": "BetterCantina",
+  "version": "1.2",
   "permissions": ["activeTab"],
   "action": {
     "default_popup": "popup.html"
   },
   "content_scripts": [
     {
-      "matches": ["https://cantina.xyz/code/*/findings*"],
+      "matches": [
+        "https://cantina.xyz/code/*/findings*",
+        "https://cantina.xyz/notifications*"
+      ],
       "js": ["content.js"]
     }
   ]
