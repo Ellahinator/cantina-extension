@@ -3,6 +3,9 @@
   "name": "Cantina Findings Counter",
   "version": "1.0",
   "permissions": ["activeTab"],
+  "action": {
+    "default_popup": "popup.html"
+  },
   "content_scripts": [
     {
       "matches": ["https://cantina.xyz/code/*/findings*"],

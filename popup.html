@@ -1,0 +1,55 @@
+<!-- popup.html -->
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        width: 500px;
+        padding: 10px;
+        font-family: Arial, sans-serif;
+      }
+      .filters {
+        margin-bottom: 15px;
+      }
+      .checkbox-wrapper {
+        margin-right: 15px;
+        display: inline-block;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+      th {
+        background-color: #f4f4f4;
+      }
+      a {
+        color: #0366d6;
+        text-decoration: none;
+      }
+      a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="filters">
+      <div class="checkbox-wrapper">
+        <input type="checkbox" id="lowSeverity" checked />
+        <label for="lowSeverity">Low</label>
+      </div>
+      <div class="checkbox-wrapper">
+        <input type="checkbox" id="infoSeverity" />
+        <label for="infoSeverity">Informational</label>
+      </div>
+    </div>
+    <div id="report-content"></div>
+    <script src="popup.js"></script>
+  </body>
+</html>
