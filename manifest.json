@@ -1,0 +1,12 @@
+{
+  "manifest_version": 3,
+  "name": "Cantina Findings Counter",
+  "version": "1.0",
+  "permissions": ["activeTab"],
+  "content_scripts": [
+    {
+      "matches": ["https://cantina.xyz/code/*/findings*"],
+      "js": ["content.js"]
+    }
+  ]
+}
