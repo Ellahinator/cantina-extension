@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Cantina Findings Counter",
-  "version": "1.0",
+  "name": "Cantina Judge Assistant",
+  "version": "1.1",
   "permissions": ["activeTab"],
   "action": {
     "default_popup": "popup.html"
