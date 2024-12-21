@@ -109,6 +109,10 @@ function createButtonGroup() {
   return buttonGroup;
 }
 
+function createConfirmDialog(message) {
+  return confirm(message);
+}
+
 async function createNotificationButtons() {
   const headerElement = document.querySelector(".css-1wfrqi4");
   if (!headerElement) return;
@@ -127,12 +131,14 @@ async function createNotificationButtons() {
         action: "all-read",
         viewBox: "0 0 448 512",
         path: "M438.6 105.4c12.5 12.5 12.5 32.8 0 45.3l-256 256c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L160 338.7 393.4 105.4c12.5-12.5 32.8-12.5 45.3 0z",
+        needsConfirmation: false,
       },
       {
         text: "Mark All Archived",
         action: "all-archive",
         viewBox: "0 0 512 512",
         path: "M32 32H480c17.7 0 32 14.3 32 32V96c0 17.7-14.3 32-32 32H32C14.3 128 0 113.7 0 96V64C0 46.3 14.3 32 32 32zm0 128H480V416c0 35.3-28.7 64-64 64H96c-35.3 0-64-28.7-64-64V160zm128 80c0 8.8 7.2 16 16 16H336c8.8 0 16-7.2 16-16s-7.2-16-16-16H176c-8.8 0-16 7.2-16 16z",
+        needsConfirmation: true,
       },
     ];
 
@@ -142,10 +148,11 @@ async function createNotificationButtons() {
         action: "clippy-archive",
         viewBox: "0 0 512 512",
         path: "M32 32H480c17.7 0 32 14.3 32 32V96c0 17.7-14.3 32-32 32H32C14.3 128 0 113.7 0 96V64C0 46.3 14.3 32 32 32zm0 128H480V416c0 35.3-28.7 64-64 64H96c-35.3 0-64-28.7-64-64V160zm128 80c0 8.8 7.2 16 16 16H336c8.8 0 16-7.2 16-16s-7.2-16-16-16H176c-8.8 0-16 7.2-16 16z",
+        needsConfirmation: false,
       });
     }
 
-    buttons.forEach(({ text, action, viewBox, path }) => {
+    buttons.forEach(({ text, action, viewBox, path, needsConfirmation }) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "chakra-button css-rsu9ta";
@@ -176,10 +183,32 @@ async function createNotificationButtons() {
       iconSpan.appendChild(svg);
       button.appendChild(iconSpan);
 
-      const textNode = document.createTextNode(text);
-      button.appendChild(textNode);
+      const textSpan = document.createElement("span");
+      textSpan.textContent = text;
+      button.appendChild(textSpan);
 
-      button.addEventListener("click", () => handleNotificationAction(action));
+      button.addEventListener("click", async () => {
+        if (
+          needsConfirmation &&
+          !createConfirmDialog(
+            // `Are you sure you want to ${text.toLowerCase()}?`
+            "Are you sure you want to mark ALL notifications as archived? This action cannot be undone."
+          )
+        ) {
+          return;
+        }
+
+        button.disabled = true;
+        textSpan.textContent = "Loading...";
+
+        try {
+          await handleNotificationAction(action);
+        } finally {
+          button.disabled = false;
+          textSpan.textContent = text;
+        }
+      });
+
       buttonGroup.appendChild(button);
     });
 
