@@ -1,3 +1,4 @@
+// ================ FINDINGS MODULE ================
 const findingsModule = {
   extractCompetitionId() {
     const pathParts = window.location.pathname.split("/");
@@ -70,7 +71,7 @@ const findingsModule = {
   },
 };
 
-// Initialize findings functionality only on the correct URL
+// Initialize findings functionality
 if (findingsModule.shouldInitialize()) {
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => findingsModule.init());
@@ -80,6 +81,7 @@ if (findingsModule.shouldInitialize()) {
   findingsModule.initializeObserver();
 }
 
+// ================ NOTIFICATIONS MODULE ================
 async function fetchNotifications() {
   const response = await fetch(
     "https://cantina.xyz/api/v0/notifications?limit=20000"
@@ -156,9 +158,7 @@ async function createNotificationButtons() {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "chakra-button css-rsu9ta";
-      button.style.cssText = `
-        color: #FA5E06;
-      `;
+      button.style.cssText = `color: #FA5E06;`;
 
       const iconSpan = document.createElement("span");
       iconSpan.className = "chakra-button__icon css-1wh2kri";
@@ -191,7 +191,6 @@ async function createNotificationButtons() {
         if (
           needsConfirmation &&
           !createConfirmDialog(
-            // `Are you sure you want to ${text.toLowerCase()}?`
             "Are you sure you want to mark ALL notifications as archived? This action cannot be undone."
           )
         ) {
@@ -217,6 +216,186 @@ async function createNotificationButtons() {
     console.error("Error creating notification buttons:", error);
   }
 }
+
+// ================ COPY MODULE ================
+function getFormattedContent(element) {
+  const content = [];
+
+  // Process all child nodes
+  element.childNodes.forEach((node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      content.push(node.textContent);
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      switch (node.tagName.toLowerCase()) {
+        case "blockquote":
+          // Handle nested blockquotes by prepending '>' to each line
+          const blockquoteContent = getFormattedContent(node)
+            .split("\n")
+            .map((line) => `> ${line}`)
+            .join("\n");
+          content.push(`${blockquoteContent}\n`);
+          break;
+        case "p":
+          content.push(`${getFormattedContent(node)}\n\n`);
+          break;
+        case "code":
+          if (node.parentElement.tagName.toLowerCase() === "pre") {
+            // Code blocks - preserve exact formatting
+            const language = node.className.match(/language-(\w+)/)?.[1] || "";
+            const codeContent = node.textContent.replace(/\n$/, ""); // Remove only trailing newline if exists
+            content.push(`\`\`\`${language}\n${codeContent}\n\`\`\`\n\n`);
+          } else {
+            // Inline code
+            content.push(`\`${node.textContent}\``);
+          }
+          break;
+        case "strong":
+        case "b":
+          content.push(`**${node.textContent}**`);
+          break;
+        case "em":
+        case "i":
+          content.push(`*${node.textContent}*`);
+          break;
+        case "ol":
+          node.childNodes.forEach((li, index) => {
+            if (li.tagName && li.tagName.toLowerCase() === "li") {
+              content.push(`${index + 1}. ${getFormattedContent(li)}\n`);
+            }
+          });
+          content.push("\n");
+          break;
+        case "ul":
+          node.childNodes.forEach((li) => {
+            if (li.tagName && li.tagName.toLowerCase() === "li") {
+              content.push(`- ${getFormattedContent(li)}\n`);
+            }
+          });
+          content.push("\n");
+          break;
+        default:
+          content.push(getFormattedContent(node));
+      }
+    }
+  });
+
+  return content
+    .join("")
+    .replace(/\n\n\n+/g, "\n\n")
+    .replace(/^\n+|\n+$/g, "")
+    .trim();
+}
+
+function createCopyButtons(commentElement) {
+  const buttonContainer = document.createElement("div");
+  buttonContainer.style.cssText = `
+    display: inline-flex;
+    align-items: center;
+    margin-right: 24px;
+  `;
+
+  // Copy button
+  const copyButton = document.createElement("button");
+  copyButton.className = "chakra-button css-rsu9ta";
+  copyButton.style.cssText = `
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    min-width: 24px;
+    padding: 0;
+    margin-right: 8px;
+  `;
+  copyButton.innerHTML = `
+    <span class="chakra-button__icon" style="margin: 0;">
+      <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor">
+        <path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>
+      </svg>
+    </span>
+  `;
+
+  copyButton.addEventListener("click", () => {
+    const markdownBody = commentElement.querySelector(".markdown-body");
+    const formattedContent = getFormattedContent(markdownBody);
+
+    navigator.clipboard.writeText(formattedContent).then(() => {
+      const originalContent = copyButton.innerHTML;
+      copyButton.innerHTML = `
+        <span class="chakra-button__icon" style="margin: 0;">
+          <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor">
+            <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
+          </svg>
+        </span>
+      `;
+      setTimeout(() => {
+        copyButton.innerHTML = originalContent;
+      }, 1111);
+    });
+  });
+
+  // Quote button
+  const quoteButton = document.createElement("button");
+  quoteButton.className = "chakra-button css-rsu9ta";
+  quoteButton.style.cssText = `
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    min-width: 24px;
+    padding: 0;
+  `;
+  quoteButton.innerHTML = `
+    <span class="chakra-button__icon" style="margin: 0;">
+      <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M16 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/>
+        <path d="M5 3a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2 1 1 0 0 1 1 1v1a2 2 0 0 1-2 2 1 1 0 0 0-1 1v2a1 1 0 0 0 1 1 6 6 0 0 0 6-6V5a2 2 0 0 0-2-2z"/>
+      </svg>
+    </span>
+  `;
+
+  quoteButton.addEventListener("click", () => {
+    const markdownBody = commentElement.querySelector(".markdown-body");
+    const formattedContent = getFormattedContent(markdownBody);
+    const quotedContent = formattedContent
+      .split("\n")
+      .map((line) => `> ${line}`) // Add '>' to all lines, including empty ones
+      .join("\n");
+
+    navigator.clipboard.writeText(quotedContent).then(() => {
+      const originalContent = quoteButton.innerHTML;
+      quoteButton.innerHTML = `
+        <span class="chakra-button__icon" style="margin: 0;">
+          <svg viewBox="0 0 24 24" width="1em" height="1em" fill="currentColor">
+            <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
+          </svg>
+        </span>
+      `;
+      setTimeout(() => {
+        quoteButton.innerHTML = originalContent;
+      }, 1111);
+    });
+  });
+
+  buttonContainer.appendChild(copyButton);
+  buttonContainer.appendChild(quoteButton);
+
+  return buttonContainer;
+}
+
+function addCopyButtonsToComments() {
+  const comments = document.querySelectorAll(".css-g1vc1a");
+  comments.forEach((comment) => {
+    const menuButton = comment.querySelector(".chakra-menu__menu-button");
+    if (
+      menuButton &&
+      !menuButton.parentElement.querySelector(".copy-buttons-container")
+    ) {
+      const buttonsContainer = createCopyButtons(comment);
+      buttonsContainer.classList.add("copy-buttons-container");
+      menuButton.insertAdjacentElement("beforebegin", buttonsContainer);
+    }
+  });
+}
+
+// ================ INITIALIZATION ================
 function waitForHeader() {
   const observer = new MutationObserver((mutations, obs) => {
     const headerElement = document.querySelector(".css-1wfrqi4");
@@ -259,4 +438,27 @@ async function handleNotificationAction(action) {
   } catch (error) {
     console.error("Error handling notifications:", error);
   }
+}
+
+// ================ COPY MODULE INITIALIZATION ================
+function shouldInitializeCopyModule() {
+  // Matches URLs like https://cantina.xyz/code/{any-id}/findings/{number}
+  return /^https:\/\/cantina\.xyz\/code\/[^/]+\/findings\/\d+$/.test(
+    window.location.href
+  );
+}
+
+if (shouldInitializeCopyModule()) {
+  // Initialize copy functionality
+  const commentsObserver = new MutationObserver(() => {
+    addCopyButtonsToComments();
+  });
+
+  commentsObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+
+  // Initial addition of copy buttons
+  addCopyButtonsToComments();
 }
