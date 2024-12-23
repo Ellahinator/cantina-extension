@@ -82,10 +82,18 @@ if (findingsModule.shouldInitialize()) {
 }
 
 // ================ NOTIFICATIONS MODULE ================
-async function fetchNotifications() {
-  const response = await fetch(
-    "https://cantina.xyz/api/v0/notifications?limit=20000"
-  );
+async function fetchNotifications(useCurrentFilters = false) {
+  let apiUrl = "https://cantina.xyz/api/v0/notifications?limit=20000";
+
+  if (useCurrentFilters) {
+    // Get current URL parameters and append them to API call
+    const currentParams = new URLSearchParams(window.location.search);
+    for (let [key, value] of currentParams) {
+      apiUrl += `&${key}=${value}`;
+    }
+  }
+
+  const response = await fetch(apiUrl);
   return await response.json();
 }
 
@@ -133,7 +141,9 @@ async function createNotificationButtons() {
         action: "all-read",
         viewBox: "0 0 448 512",
         path: "M438.6 105.4c12.5 12.5 12.5 32.8 0 45.3l-256 256c-12.5 12.5-32.8 12.5-45.3 0l-128-128c-12.5-12.5-12.5-32.8 0-45.3s32.8-12.5 45.3 0L160 338.7 393.4 105.4c12.5-12.5 32.8-12.5 45.3 0z",
-        needsConfirmation: false,
+        needsConfirmation: true,
+        getConfirmText: () =>
+          `Are you sure you want to mark all ${getNotificationTypeText()} as read?`,
       },
       {
         text: "Mark All Archived",
@@ -141,6 +151,8 @@ async function createNotificationButtons() {
         viewBox: "0 0 512 512",
         path: "M32 32H480c17.7 0 32 14.3 32 32V96c0 17.7-14.3 32-32 32H32C14.3 128 0 113.7 0 96V64C0 46.3 14.3 32 32 32zm0 128H480V416c0 35.3-28.7 64-64 64H96c-35.3 0-64-28.7-64-64V160zm128 80c0 8.8 7.2 16 16 16H336c8.8 0 16-7.2 16-16s-7.2-16-16-16H176c-8.8 0-16 7.2-16 16z",
         needsConfirmation: true,
+        getConfirmText: () =>
+          `Are you sure you want to mark all ${getNotificationTypeText()} as archived? This action cannot be undone.`,
       },
     ];
 
@@ -151,70 +163,124 @@ async function createNotificationButtons() {
         viewBox: "0 0 512 512",
         path: "M32 32H480c17.7 0 32 14.3 32 32V96c0 17.7-14.3 32-32 32H32C14.3 128 0 113.7 0 96V64C0 46.3 14.3 32 32 32zm0 128H480V416c0 35.3-28.7 64-64 64H96c-35.3 0-64-28.7-64-64V160zm128 80c0 8.8 7.2 16 16 16H336c8.8 0 16-7.2 16-16s-7.2-16-16-16H176c-8.8 0-16 7.2-16 16z",
         needsConfirmation: false,
+        confirmText: "",
       });
     }
 
-    buttons.forEach(({ text, action, viewBox, path, needsConfirmation }) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "chakra-button css-rsu9ta";
-      button.style.cssText = `color: #FA5E06;`;
+    buttons.forEach(
+      ({ text, action, viewBox, path, needsConfirmation, getConfirmText }) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "chakra-button css-rsu9ta";
+        button.style.cssText = `color: #FA5E06;`;
 
-      const iconSpan = document.createElement("span");
-      iconSpan.className = "chakra-button__icon css-1wh2kri";
+        const iconSpan = document.createElement("span");
+        iconSpan.className = "chakra-button__icon css-1wh2kri";
 
-      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      svg.setAttribute("stroke", "currentColor");
-      svg.setAttribute("fill", "#FA5E06");
-      svg.setAttribute("stroke-width", "0");
-      svg.setAttribute("viewBox", viewBox);
-      svg.setAttribute("aria-hidden", "true");
-      svg.setAttribute("focusable", "false");
-      svg.setAttribute("height", "1em");
-      svg.setAttribute("width", "1em");
+        const svg = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "svg"
+        );
+        svg.setAttribute("stroke", "currentColor");
+        svg.setAttribute("fill", "#FA5E06");
+        svg.setAttribute("stroke-width", "0");
+        svg.setAttribute("viewBox", viewBox);
+        svg.setAttribute("aria-hidden", "true");
+        svg.setAttribute("focusable", "false");
+        svg.setAttribute("height", "1em");
+        svg.setAttribute("width", "1em");
 
-      const pathElement = document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "path"
-      );
-      pathElement.setAttribute("d", path);
+        const pathElement = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "path"
+        );
+        pathElement.setAttribute("d", path);
 
-      svg.appendChild(pathElement);
-      iconSpan.appendChild(svg);
-      button.appendChild(iconSpan);
+        svg.appendChild(pathElement);
+        iconSpan.appendChild(svg);
+        button.appendChild(iconSpan);
 
-      const textSpan = document.createElement("span");
-      textSpan.textContent = text;
-      button.appendChild(textSpan);
+        const textSpan = document.createElement("span");
+        textSpan.textContent = text;
+        button.appendChild(textSpan);
 
-      button.addEventListener("click", async () => {
-        if (
-          needsConfirmation &&
-          !createConfirmDialog(
-            "Are you sure you want to mark ALL notifications as archived? This action cannot be undone."
-          )
-        ) {
-          return;
-        }
+        button.addEventListener("click", async () => {
+          if (
+            needsConfirmation &&
+            !createConfirmDialog(
+              typeof getConfirmText === "function"
+                ? getConfirmText()
+                : "Are you sure?"
+            )
+          ) {
+            return;
+          }
 
-        button.disabled = true;
-        textSpan.textContent = "Loading...";
+          button.disabled = true;
+          textSpan.textContent = "Loading...";
 
-        try {
-          await handleNotificationAction(action);
-        } finally {
-          button.disabled = false;
-          textSpan.textContent = text;
-        }
-      });
+          try {
+            await handleNotificationAction(action);
+          } finally {
+            button.disabled = false;
+            textSpan.textContent = text;
+          }
+        });
 
-      buttonGroup.appendChild(button);
-    });
+        buttonGroup.appendChild(button);
+      }
+    );
 
     headerElement.appendChild(buttonGroup);
   } catch (error) {
     console.error("Error creating notification buttons:", error);
   }
+}
+
+function getNotificationTypeText() {
+  const params = new URLSearchParams(window.location.search);
+  const kind = params.get("kind");
+  const pinged = params.get("pinged");
+
+  // Handle specific filter combinations
+  if (pinged === "true") {
+    return "Pings";
+  }
+
+  if (!kind) {
+    return "ALL notifications"; // Default case when no filters
+  }
+
+  // Map kind parameters to user-friendly text
+  if (kind === "repo_finding_created") {
+    return "New findings";
+  }
+
+  if (kind === "repo_comment_on_finding,repo_comment_on_file") {
+    return "Comments";
+  }
+
+  if (kind === "repo_finding_updated") {
+    return "Status changes";
+  }
+
+  if (kind === "payment_created,payment_updated") {
+    return "Payments";
+  }
+
+  if (kind === "repo_badge_awarded") {
+    return "Badges";
+  }
+
+  if (
+    kind === "repo_finding_created,repo_finding_updated" &&
+    params.get("not_finding_status") ===
+      "new,disputed,rejected,duplicate,confirmed,acknowledged,fixed,withdrawn"
+  ) {
+    return "Spam";
+  }
+
+  return "filtered notifications"; // Fallback for other filter combinations
 }
 
 // ================ COPY MODULE ================
@@ -422,7 +488,7 @@ if (window.location.pathname === "/notifications") {
 
 async function handleNotificationAction(action) {
   try {
-    const notifications = await fetchNotifications();
+    const notifications = await fetchNotifications(true); // Use current filters
     let notificationIds = notifications.notifications.map((n) => n.id);
 
     if (action.includes("clippy")) {
