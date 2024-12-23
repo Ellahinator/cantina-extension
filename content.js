@@ -442,9 +442,15 @@ async function handleNotificationAction(action) {
 
 // ================ COPY MODULE INITIALIZATION ================
 function shouldInitializeCopyModule() {
-  // Matches URLs like https://cantina.xyz/code/{any-id}/findings/{number}
-  return /^https:\/\/cantina\.xyz\/code\/[^/]+\/findings\/\d+$/.test(
-    window.location.href
+  // Get the current URL
+  const url = new URL(window.location.href);
+  const findingParam = url.searchParams.get("finding");
+
+  // Match either a direct finding URL or a URL with finding parameter (so it works with the table view)
+  return (
+    /^https:\/\/cantina\.xyz\/code\/[^/]+\/findings\/\d+$/.test(url.href) ||
+    (/^https:\/\/cantina\.xyz\/code\/[^/]+\/findings/.test(url.href) &&
+      findingParam !== null)
   );
 }
 
