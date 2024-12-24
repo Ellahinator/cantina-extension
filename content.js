@@ -127,6 +127,14 @@ async function createNotificationButtons() {
   const headerElement = document.querySelector(".css-1wfrqi4");
   if (!headerElement) return;
 
+  // Check if buttons already exist and remove them if they do
+  const existingButtonGroup = headerElement.querySelector(
+    ".chakra-button__group"
+  );
+  if (existingButtonGroup) {
+    existingButtonGroup.remove();
+  }
+
   const buttonGroup = createButtonGroup();
 
   try {
@@ -477,6 +485,18 @@ function waitForHeader() {
   });
 }
 
+function initializeNotificationObserver() {
+  let lastUrl = location.href;
+  new MutationObserver(() => {
+    if (location.href !== lastUrl) {
+      lastUrl = location.href;
+      if (window.location.pathname === "/notifications") {
+        createNotificationButtons();
+      }
+    }
+  }).observe(document, { subtree: true, childList: true });
+}
+
 if (window.location.pathname === "/notifications") {
   const headerElement = document.querySelector(".css-1wfrqi4");
   if (headerElement) {
@@ -484,6 +504,7 @@ if (window.location.pathname === "/notifications") {
   } else {
     waitForHeader();
   }
+  initializeNotificationObserver();
 }
 
 async function handleNotificationAction(action) {
