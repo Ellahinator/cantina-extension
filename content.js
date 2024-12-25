@@ -329,6 +329,9 @@ function getFormattedContent(element) {
       content.push(node.textContent);
     } else if (node.nodeType === Node.ELEMENT_NODE) {
       switch (node.tagName.toLowerCase()) {
+        case "a":
+          content.push(`[${node.textContent}](${node.href})`);
+          break;
         case "blockquote":
           // Handle nested blockquotes by prepending '>' to each line
           const blockquoteContent = getFormattedContent(node)
