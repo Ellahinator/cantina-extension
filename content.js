@@ -127,15 +127,10 @@ async function createNotificationButtons() {
   const headerElement = document.querySelector(".css-1wfrqi4");
   if (!headerElement) return;
 
-  // Check if buttons already exist and remove them if they do
-  const existingButtonGroup = headerElement.querySelector(
-    ".chakra-button__group"
-  );
-  if (existingButtonGroup) {
-    existingButtonGroup.remove();
-  }
+  if (headerElement.querySelector(".cantina-extension-buttons")) return;
 
   const buttonGroup = createButtonGroup();
+  buttonGroup.classList.add("cantina-extension-buttons"); // Add identifying class
 
   try {
     const notifications = await fetchNotifications();
@@ -213,15 +208,19 @@ async function createNotificationButtons() {
         button.appendChild(textSpan);
 
         button.addEventListener("click", async () => {
-          if (
-            needsConfirmation &&
-            !createConfirmDialog(
+          if (needsConfirmation) {
+            const notificationType = await getNotificationTypeText();
+            const confirmMessage =
               typeof getConfirmText === "function"
-                ? getConfirmText()
-                : "Are you sure?"
-            )
-          ) {
-            return;
+                ? getConfirmText().replace(
+                    /all .* as/,
+                    `ALL ${notificationType} as`
+                  )
+                : "Are you sure?";
+
+            if (!createConfirmDialog(confirmMessage)) {
+              return;
+            }
           }
 
           button.disabled = true;
@@ -238,46 +237,75 @@ async function createNotificationButtons() {
         buttonGroup.appendChild(button);
       }
     );
-
-    headerElement.appendChild(buttonGroup);
+    // Append our button group after the existing buttons
+    const existingButtonGroup = headerElement.querySelector(
+      ".chakra-button__group"
+    );
+    if (existingButtonGroup) {
+      existingButtonGroup.insertAdjacentElement("afterend", buttonGroup);
+    } else {
+      headerElement.appendChild(buttonGroup);
+    }
   } catch (error) {
     console.error("Error creating notification buttons:", error);
   }
 }
 
-function getNotificationTypeText() {
+async function getRepositoryName(repoId) {
+  try {
+    const response = await fetch(
+      `https://cantina.xyz/api/v0/repositories/${repoId}`
+    );
+    const data = await response.json();
+    return data.name;
+  } catch (error) {
+    console.error("Error fetching repository name:", error);
+    return null;
+  }
+}
+
+async function getNotificationTypeText() {
   const params = new URLSearchParams(window.location.search);
   const kind = params.get("kind");
   const pinged = params.get("pinged");
+  const repositoryId = params.get("repository_id");
+
+  let prefix = "";
+  if (repositoryId) {
+    const repoName = await getRepositoryName(repositoryId);
+    if (repoName) {
+      prefix = `${repoName} `;
+    }
+  }
 
   // Handle specific filter combinations
   if (pinged === "true") {
-    return "Pings";
+    return `${prefix}Pings`;
   }
 
   if (!kind) {
-    return "ALL notifications"; // Default case when no filters
+    return `${prefix}notifications`; // Default case when no filters
   }
 
   // Map kind parameters to user-friendly text
   if (kind === "repo_finding_created") {
-    return "New findings";
+    return `${prefix}New findings`;
   }
 
   if (kind === "repo_comment_on_finding,repo_comment_on_file") {
-    return "Comments";
+    return `${prefix}Comments`;
   }
 
   if (kind === "repo_finding_updated") {
-    return "Status changes";
+    return `${prefix}Status changes`;
   }
 
   if (kind === "payment_created,payment_updated") {
-    return "Payments";
+    return `${prefix}Payments`;
   }
 
   if (kind === "repo_badge_awarded") {
-    return "Badges";
+    return `${prefix}Badges`;
   }
 
   if (
@@ -285,10 +313,10 @@ function getNotificationTypeText() {
     params.get("not_finding_status") ===
       "new,disputed,rejected,duplicate,confirmed,acknowledged,fixed,withdrawn"
   ) {
-    return "Spam";
+    return `${prefix}Spam`;
   }
 
-  return "filtered notifications"; // Fallback for other filter combinations
+  return `${prefix}filtered notifications`; // Fallback for other filter combinations
 }
 
 // ================ COPY MODULE ================
