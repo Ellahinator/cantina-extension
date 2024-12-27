@@ -71,6 +71,13 @@ const findingsModule = {
   },
 };
 
+function shouldInitializeCopyModule() {
+  // Enable copy functionality on findings pages and any pages with comments
+  return /^https:\/\/cantina\.xyz\/code\/[^/]+\/(findings|comments)/.test(
+    window.location.href
+  );
+}
+
 // Initialize findings functionality
 if (findingsModule.shouldInitialize()) {
   if (document.readyState === "loading") {
@@ -501,41 +508,130 @@ function addCopyButtonsToComments() {
 }
 
 // ================ INITIALIZATION ================
-function waitForHeader() {
-  const observer = new MutationObserver((mutations, obs) => {
-    const headerElement = document.querySelector(".css-1wfrqi4");
-    if (headerElement) {
-      createNotificationButtons();
-      obs.disconnect();
+const APP_INIT = {
+  MAX_RETRIES: 10,
+  RETRY_INTERVAL: 500,
+
+  async initializeWithRetry(initFn, checkFn, name, retries = 0) {
+    if (retries >= this.MAX_RETRIES) {
+      console.warn(
+        `Failed to initialize ${name} after ${this.MAX_RETRIES} attempts`
+      );
+      return;
     }
-  });
 
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-  });
-}
-
-function initializeNotificationObserver() {
-  let lastUrl = location.href;
-  new MutationObserver(() => {
-    if (location.href !== lastUrl) {
-      lastUrl = location.href;
-      if (window.location.pathname === "/notifications") {
-        createNotificationButtons();
+    try {
+      const result = await initFn();
+      if (!checkFn(result)) {
+        setTimeout(() => {
+          this.initializeWithRetry(initFn, checkFn, name, retries + 1);
+        }, this.RETRY_INTERVAL);
       }
+    } catch (error) {
+      console.error(`Error initializing ${name}:`, error);
+      setTimeout(() => {
+        this.initializeWithRetry(initFn, checkFn, name, retries + 1);
+      }, this.RETRY_INTERVAL);
     }
-  }).observe(document, { subtree: true, childList: true });
-}
+  },
 
-if (window.location.pathname === "/notifications") {
-  const headerElement = document.querySelector(".css-1wfrqi4");
-  if (headerElement) {
-    createNotificationButtons();
-  } else {
-    waitForHeader();
-  }
-  initializeNotificationObserver();
+  async initializeFindings() {
+    if (!findingsModule.shouldInitialize()) return;
+
+    const initFn = async () => {
+      const count = await findingsModule.fetchFindings();
+      findingsModule.displayCount(count);
+      return document.querySelector(".css-1g1kbdo");
+    };
+
+    const checkFn = (element) => element && element.textContent;
+
+    await this.initializeWithRetry(initFn, checkFn, "findings count");
+  },
+
+  async initializeNotifications() {
+    if (window.location.pathname !== "/notifications") return;
+
+    const initFn = async () => {
+      const headerElement = document.querySelector(".css-1wfrqi4");
+      if (headerElement) {
+        await createNotificationButtons();
+      }
+      return headerElement;
+    };
+
+    const checkFn = (element) =>
+      element && element.querySelector(".cantina-extension-buttons");
+
+    await this.initializeWithRetry(initFn, checkFn, "notifications");
+  },
+
+  initializeCopyButtons() {
+    if (!shouldInitializeCopyModule()) return;
+
+    const initFn = async () => {
+      addCopyButtonsToComments();
+      // Get all comments that should have copy buttons
+      const comments = document.querySelectorAll(".css-g1vc1a");
+      const buttonsAdded = Array.from(comments).some((comment) =>
+        comment.querySelector(".copy-buttons-container")
+      );
+      return buttonsAdded;
+    };
+
+    const checkFn = (result) => result === true;
+
+    this.initializeWithRetry(initFn, checkFn, "copy buttons");
+  },
+
+  setupUrlChangeObserver() {
+    let lastUrl = location.href;
+    new MutationObserver(() => {
+      if (location.href !== lastUrl) {
+        lastUrl = location.href;
+        this.initializeAll();
+      }
+    }).observe(document, { subtree: true, childList: true });
+  },
+
+  setupDynamicContentObserver() {
+    new MutationObserver((mutations) => {
+      const hasRelevantChanges = mutations.some((mutation) =>
+        Array.from(mutation.addedNodes).some(
+          (node) =>
+            node.nodeType === Node.ELEMENT_NODE &&
+            (node.classList?.contains("css-g1vc1a") || // Comments
+              node.classList?.contains("css-1g1kbdo") || // Findings count
+              node.classList?.contains("css-1wfrqi4")) // Header
+        )
+      );
+
+      if (hasRelevantChanges) {
+        this.initializeAll();
+      }
+    }).observe(document, { childList: true, subtree: true });
+  },
+
+  async initializeAll() {
+    await Promise.all([
+      this.initializeFindings(),
+      this.initializeNotifications(),
+      this.initializeCopyButtons(),
+    ]);
+  },
+};
+
+// Start initialization
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", () => {
+    APP_INIT.initializeAll();
+    APP_INIT.setupUrlChangeObserver();
+    APP_INIT.setupDynamicContentObserver();
+  });
+} else {
+  APP_INIT.initializeAll();
+  APP_INIT.setupUrlChangeObserver();
+  APP_INIT.setupDynamicContentObserver();
 }
 
 async function handleNotificationAction(action) {
@@ -556,33 +652,4 @@ async function handleNotificationAction(action) {
   } catch (error) {
     console.error("Error handling notifications:", error);
   }
-}
-
-// ================ COPY MODULE INITIALIZATION ================
-function shouldInitializeCopyModule() {
-  // Get the current URL
-  const url = new URL(window.location.href);
-  const findingParam = url.searchParams.get("finding");
-
-  // Match either a direct finding URL or a URL with finding parameter (so it works with the table view)
-  return (
-    /^https:\/\/cantina\.xyz\/code\/[^/]+\/findings\/\d+$/.test(url.href) ||
-    (/^https:\/\/cantina\.xyz\/code\/[^/]+\/findings/.test(url.href) &&
-      findingParam !== null)
-  );
-}
-
-if (shouldInitializeCopyModule()) {
-  // Initialize copy functionality
-  const commentsObserver = new MutationObserver(() => {
-    addCopyButtonsToComments();
-  });
-
-  commentsObserver.observe(document.body, {
-    childList: true,
-    subtree: true,
-  });
-
-  // Initial addition of copy buttons
-  addCopyButtonsToComments();
 }

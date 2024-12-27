@@ -1,3 +1,4 @@
 .aider*
 .env
 *.zip
+.DS_Store
