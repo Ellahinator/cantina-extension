@@ -30,11 +30,26 @@ async function generateReport() {
   const response = await fetch(apiUrl);
   const data = await response.json();
 
-  // Count findings per researcher
+  // Count findings per researcher with duplicate validation
   const findingsCount = {};
   data.findings.forEach((finding) => {
     const username = finding.createdBy?.username || "Unknown";
-    findingsCount[username] = (findingsCount[username] || 0) + 1;
+    let shouldCount = false;
+
+    if (finding.status === "new" || finding.status === "confirmed") {
+      shouldCount = true;
+    } else if (finding.status === "duplicate") {
+      // Check the status in the duplicateOf object
+      const duplicateOf = finding.duplicateOf;
+      const originalStatus = duplicateOf?.status;
+      if (originalStatus && originalStatus !== "rejected") {
+        shouldCount = true;
+      }
+    }
+
+    if (shouldCount) {
+      findingsCount[username] = (findingsCount[username] || 0) + 1;
+    }
   });
 
   // Sort researchers by count
@@ -65,8 +80,43 @@ async function generateReport() {
       .join("")}
   `;
 
+  // Generate markdown table content
+  const markdownLines = [
+    "| Researcher              | # of Findings |",
+    "|------------------------|---------------|",
+  ];
+
+  sortedFindings.forEach(([name, count]) => {
+    const clickableLink = `[${name}](https://cantina.xyz/code/${competitionId}/findings?severity=${severities.join(
+      ","
+    )}&status=new%2Cconfirmed%2Cduplicate&created_by=${name})`;
+    const paddedLink = clickableLink.padEnd(23);
+    markdownLines.push(`| ${paddedLink}| ${count.toString().padEnd(13)} |`);
+  });
+
+  // Create copy button
+  const copyButton = document.createElement("button");
+  copyButton.textContent = "Copy Markdown";
+  copyButton.style.marginBottom = "10px";
+  copyButton.onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(markdownLines.join("\n"));
+      copyButton.textContent = "Copied!";
+      setTimeout(() => {
+        copyButton.textContent = "Copy Markdown";
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+      copyButton.textContent = "Copy Failed";
+      setTimeout(() => {
+        copyButton.textContent = "Copy Markdown";
+      }, 2000);
+    }
+  };
+
   const reportContent = document.getElementById("report-content");
   reportContent.innerHTML = "";
+  reportContent.appendChild(copyButton);
   reportContent.appendChild(table);
 }
 
