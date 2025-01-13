@@ -137,12 +137,19 @@ async function createNotificationButtons() {
   if (headerElement.querySelector(".cantina-extension-buttons")) return;
 
   const buttonGroup = createButtonGroup();
-  buttonGroup.classList.add("cantina-extension-buttons"); // Add identifying class
+  buttonGroup.classList.add("cantina-extension-buttons");
 
   try {
     const notifications = await fetchNotifications();
+    // Add null check for notifications and notifications.notifications
+    if (!notifications || !notifications.notifications) {
+      console.error("No notifications data received");
+      return;
+    }
+
+    // Add safer check for clippy notifications
     const hasClippyNotifications = notifications.notifications.some(
-      (n) => n.createdBy.name === "clippy"
+      (n) => n?.createdBy?.name === "clippy"
     );
 
     const buttons = [
