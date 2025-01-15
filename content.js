@@ -500,7 +500,7 @@ function createCopyButtons(commentElement) {
 }
 
 function addCopyButtonsToComments() {
-  const comments = document.querySelectorAll(".css-g1vc1a");
+  const comments = document.querySelectorAll(".css-tx3m7c");
   comments.forEach((comment) => {
     const menuButton = comment.querySelector(".chakra-menu__menu-button");
     if (
