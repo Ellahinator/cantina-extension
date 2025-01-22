@@ -648,7 +648,7 @@ async function handleNotificationAction(action) {
 
     if (action.includes("clippy")) {
       notificationIds = notifications.notifications
-        .filter((n) => n.createdBy.name === "clippy")
+        .filter((n) => n?.createdBy?.name === "clippy")
         .map((n) => n.id);
     }
 
