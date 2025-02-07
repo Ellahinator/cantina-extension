@@ -32,14 +32,26 @@ const findingsModule = {
       apiUrl.searchParams.append("created_by", filters.reviewers.join(","));
     apiUrl.searchParams.append("limit", "2000");
 
-    const response = await fetch(apiUrl);
-    const data = await response.json();
-    return data.findings.length;
+    try {
+      const response = await fetch(apiUrl);
+      const data = await response.json();
+      if (!data || !data.findings) {
+        console.error("No findings data received");
+        return 0;
+      }
+      return data.findings.length;
+    } catch (error) {
+      console.error("Error fetching findings:", error);
+      return 0;
+    }
   },
 
   displayCount(count) {
-    const countElement = document.querySelector(".css-1g1kbdo");
-    if (!countElement) return;
+    const countElement = document.querySelector(".css-4knoeo");
+    if (!countElement) {
+      console.error("Count element not found");
+      return;
+    }
     countElement.textContent = count;
   },
 
