@@ -144,6 +144,7 @@ function createConfirmDialog(message) {
 
 async function createNotificationButtons() {
   const headerElement = document.querySelector(".css-1wfrqi4");
+  const NOTI_BUTTON_STYLE = "chakra-button css-1kpmioe";
   if (!headerElement) return;
 
   if (headerElement.querySelector(".cantina-extension-buttons")) return;
@@ -200,7 +201,7 @@ async function createNotificationButtons() {
       ({ text, action, viewBox, path, needsConfirmation, getConfirmText }) => {
         const button = document.createElement("button");
         button.type = "button";
-        button.className = "chakra-button css-rsu9ta";
+        button.className = NOTI_BUTTON_STYLE;
         button.style.cssText = `color: #FA5E06;`;
 
         const iconSpan = document.createElement("span");
