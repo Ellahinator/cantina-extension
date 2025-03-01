@@ -529,7 +529,7 @@ function addCopyButtonsToComments() {
 
 // ================ INITIALIZATION ================
 const APP_INIT = {
-  MAX_RETRIES: 10,
+  MAX_RETRIES: 20,
   RETRY_INTERVAL: 500,
 
   async initializeWithRetry(initFn, checkFn, name, retries = 0) {
