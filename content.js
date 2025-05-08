@@ -1,87 +1,87 @@
 // ================ FINDINGS MODULE ================
-const findingsModule = {
-  extractCompetitionId() {
-    const pathParts = window.location.pathname.split("/");
-    return pathParts[2];
-  },
+// const findingsModule = {
+//   extractCompetitionId() {
+//     const pathParts = window.location.pathname.split("/");
+//     return pathParts[2];
+//   },
 
-  getUrlParams() {
-    const params = new URLSearchParams(window.location.search);
-    return {
-      status: params.get("status") || "",
-      duplicates: params.get("duplicates") !== "false",
-      severity: (params.get("severity") || "").split(",").filter(Boolean),
-      label: params.get("label") || "",
-      reviewers: (params.get("created_by") || "").split(",").filter(Boolean),
-    };
-  },
+//   getUrlParams() {
+//     const params = new URLSearchParams(window.location.search);
+//     return {
+//       status: params.get("status") || "",
+//       duplicates: params.get("duplicates") !== "false",
+//       severity: (params.get("severity") || "").split(",").filter(Boolean),
+//       label: params.get("label") || "",
+//       reviewers: (params.get("created_by") || "").split(",").filter(Boolean),
+//     };
+//   },
 
-  async fetchFindings() {
-    const competitionId = this.extractCompetitionId();
-    const filters = this.getUrlParams();
+//   async fetchFindings() {
+//     const competitionId = this.extractCompetitionId();
+//     const filters = this.getUrlParams();
 
-    const apiUrl = new URL(
-      `https://cantina.xyz/api/v0/repositories/${competitionId}/findings`
-    );
+//     const apiUrl = new URL(
+//       `https://cantina.xyz/api/v0/repositories/${competitionId}/findings`
+//     );
 
-    if (filters.status) apiUrl.searchParams.append("status", filters.status);
-    if (filters.severity.length)
-      apiUrl.searchParams.append("severity", filters.severity.join(","));
-    if (filters.label) apiUrl.searchParams.append("label", filters.label);
-    if (filters.reviewers.length)
-      apiUrl.searchParams.append("created_by", filters.reviewers.join(","));
-    apiUrl.searchParams.append("limit", "2000");
+//     if (filters.status) apiUrl.searchParams.append("status", filters.status);
+//     if (filters.severity.length)
+//       apiUrl.searchParams.append("severity", filters.severity.join(","));
+//     if (filters.label) apiUrl.searchParams.append("label", filters.label);
+//     if (filters.reviewers.length)
+//       apiUrl.searchParams.append("created_by", filters.reviewers.join(","));
+//     apiUrl.searchParams.append("limit", "2000");
 
-    try {
-      const response = await fetch(apiUrl);
-      const data = await response.json();
-      if (!data || !data.findings) {
-        console.error("No findings data received");
-        return 0;
-      }
-      return data.findings.length;
-    } catch (error) {
-      console.error("Error fetching findings:", error);
-      return 0;
-    }
-  },
+//     try {
+//       const response = await fetch(apiUrl);
+//       const data = await response.json();
+//       if (!data || !data.findings) {
+//         console.error("No findings data received");
+//         return 0;
+//       }
+//       return data.findings.length;
+//     } catch (error) {
+//       console.error("Error fetching findings:", error);
+//       return 0;
+//     }
+//   },
 
-  displayCount(count) {
-    const countElement = document.querySelector(".css-4knoeo");
-    if (!countElement) {
-      console.error("Count element not found");
-      return;
-    }
-    countElement.textContent = count;
-  },
+//   displayCount(count) {
+//     const countElement = document.querySelector(".css-4knoeo");
+//     if (!countElement) {
+//       console.error("Count element not found");
+//       return;
+//     }
+//     countElement.textContent = count;
+//   },
 
-  async init() {
-    try {
-      const count = await this.fetchFindings();
-      this.displayCount(count);
-    } catch (error) {
-      console.error("Error updating findings count:", error);
-    }
-  },
+//   async init() {
+//     try {
+//       const count = await this.fetchFindings();
+//       this.displayCount(count);
+//     } catch (error) {
+//       console.error("Error updating findings count:", error);
+//     }
+//   },
 
-  initializeObserver() {
-    let lastUrl = location.href;
-    new MutationObserver(() => {
-      if (location.href !== lastUrl) {
-        lastUrl = location.href;
-        if (this.shouldInitialize()) {
-          this.init();
-        }
-      }
-    }).observe(document, { subtree: true, childList: true });
-  },
+//   initializeObserver() {
+//     let lastUrl = location.href;
+//     new MutationObserver(() => {
+//       if (location.href !== lastUrl) {
+//         lastUrl = location.href;
+//         if (this.shouldInitialize()) {
+//           this.init();
+//         }
+//       }
+//     }).observe(document, { subtree: true, childList: true });
+//   },
 
-  shouldInitialize() {
-    return /^https:\/\/cantina\.xyz\/code\/[^/]+\/findings/.test(
-      window.location.href
-    );
-  },
-};
+//   shouldInitialize() {
+//     return /^https:\/\/cantina\.xyz\/code\/[^/]+\/findings/.test(
+//       window.location.href
+//     );
+//   },
+// };
 
 function shouldInitializeCopyModule() {
   // Enable copy functionality on findings pages and any pages with comments
@@ -91,14 +91,14 @@ function shouldInitializeCopyModule() {
 }
 
 // Initialize findings functionality
-if (findingsModule.shouldInitialize()) {
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => findingsModule.init());
-  } else {
-    findingsModule.init();
-  }
-  findingsModule.initializeObserver();
-}
+// if (findingsModule.shouldInitialize()) {
+//   if (document.readyState === "loading") {
+//     document.addEventListener("DOMContentLoaded", () => findingsModule.init());
+//   } else {
+//     findingsModule.init();
+//   }
+//   findingsModule.initializeObserver();
+// }
 
 // ================ NOTIFICATIONS MODULE ================
 async function fetchNotifications(useCurrentFilters = false) {
@@ -634,7 +634,7 @@ const APP_INIT = {
 
   async initializeAll() {
     await Promise.all([
-      this.initializeFindings(),
+      // this.initializeFindings(),
       this.initializeNotifications(),
       this.initializeCopyButtons(),
     ]);
